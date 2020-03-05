@@ -1,0 +1,1044 @@
+[
+    {
+        "id": "f100698d.0e9dd8",
+        "type": "tab",
+        "label": "fileLoader",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "2c21fb00.0e2a86",
+        "type": "catch",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "scope": [
+            "c846dcd4.3eaa8"
+        ],
+        "uncaught": false,
+        "x": 110,
+        "y": 140,
+        "wires": [
+            [
+                "3024d1da.da338e"
+            ]
+        ]
+    },
+    {
+        "id": "3024d1da.da338e",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "JSON",
+        "func": "msg.payload = JSON.stringify({\n    \"body\": \"Process error\"\n});\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 290,
+        "y": 140,
+        "wires": [
+            [
+                "8f1a9f63.d774f"
+            ]
+        ]
+    },
+    {
+        "id": "db867f8f.2b2ec",
+        "type": "http in",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "url": "/fileLoader",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 140,
+        "y": 100,
+        "wires": [
+            [
+                "d14d8e76.0d5df"
+            ]
+        ]
+    },
+    {
+        "id": "d14d8e76.0d5df",
+        "type": "template",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "<!DOCTYPE html>\n<html>\n <head>\n  <meta charset=\"utf-8\">\n  <title>filesLoader</title>\n  <style>\n   .addForm {\n      border: 1px solid gray;\n      padding: 10px;\n      width: 400px;\n    }\n    \n    .field {\n      padding: 10px;\n    }\n    \n    .attrField {\n      display: flex;\n      flex-direction: column;\n      margin: 5px;\n    }\n    \n    #btn{\n      background-color: gray;\n      color: white;\n      padding: 5px;\n      border-radius: 10px;\n    }\n    \n    #reset{\n      background-color: red;\n      color: white;\n      padding: 5px;\n      border-radius: 10px;\n    }\n    \n  </style>\n </head>\n <body>\n  \n  <h4>Завантаження бази до ЦРМ:</h4>\n    <form class=\"addForm\" id=\"addForm\"> \n      \n      <div id=\"aditionalInfo\" align=\"center\">Онлайн параметри заявки:\n        <h4>Чи потрібно щось з ЄКБ?</h4>\n        <p id=\"toEkbQ\"></p><p class=\"toEkbQuestion\">\n          <lable class=\"radio\"><input type=\"radio\" id=\"toEkb1\" name=\"toEkb\" value=\"Ні\"/>Ні</lable>\n          <lable class=\"radio\"><input type=\"radio\" id=\"toEkb2\" name=\"toEkb\" value=\"Так\"/>Так</lable></p>\n        <hr>\n        <h4>Чи потрібно щось з гаманця?</h4>\n        <p id=\"toCardsQ\"></p><p class=\"toCardsQuestion\">\n          <lable class=\"radio\"><input type=\"radio\" id=\"toCards1\" name=\"toCards\" value=\"Ні\"/>Ні</lable>\n          <lable class=\"radio\"><input type=\"radio\" id=\"toCards2\" name=\"toCards\" value=\"Так\"/>Так</lable></p>\n        <hr>\n        <h4>Чи потрібно щось з НРМ (не працює)?</h4>\n        <p id=\"toNrmQ\" ></p><p class=\"toNrmQuestion\">\n          <lable class=\"radio\"><input type=\"radio\" id=\"toNrm1\" name=\"toNrm\" value=\"Ні\"/>Ні</lable>\n          <lable class=\"radio\"><input type=\"radio\" id=\"toNrm2\" name=\"toNrm\" value=\"Так\"/>Так</lable></p>\n        <hr>\n      </div>\n      <p class=\"field\">Оберіть файл *.CSV :\n        <input type=\"file\" id=\"file\" name=\"file\" class=\"field\" style=\"padding: 0; float: right;\" accept=\".csv\"/>\n      </p>\n      <p class=\"field\">Вкажіть SID :\n        <input type=\"text\" id=\"sid\" name=\"sid\" class=\"field\" style=\"padding: 0; float: right; width: 70%;\" value=\"\"/>\n      </p>\n      <p class=\"field\">Вкажіть затримку між заявками в мс (1 с = 1000 мс):\n        <input type=\"text\" id=\"timer\" name=\"timer\" class=\"field\" style=\"padding: 0; float: right; width: 10%;\" value=\"\"/>\n      </p>\n      <hr>\n      <input type=\"button\" id=\"btn\" name=\"btn\" class=\"field\" value=\"Import\" onclick=\"postToUrl()\"/>\n      <input type=\"button\" id=\"reset\" name=\"reset\" class=\"field\" value=\"Reset\" onclick=\"res()\"/>\n    </form>\n    <div id=\"out\">\n    </div>\n    <div id=\"err\">\n    </div>\n    <div id=\"errOut\">\n    </div>\n\n </body>\n <script>\nvar client = {\n\topsArr: [],\n\ttimerId: \"\"\n};\n\nvar counters = {\n\t\"all\": 0,\n\t\"err\": 0,\n  \"nrmAtrCount\": 0,\n  \"ekbAtrCount\": 0,\n  \"cardAtrCount\": 0\n};\n\nvar attrs = {\n    \"toCards\": \"false\",\n    \"toEkb\": \"false\",\n    \"toNrm\": \"false\"\n};\n\ndocument.getElementById(\"aditionalInfo\").addEventListener(\"click\", function(e) {\n      getFields(e); // сработает по окончании анимации\n    });\n\ndocument.getElementById('file').addEventListener('change', readFile, false);\ndocument.getElementById('sid').addEventListener('change', validSid, false);\ndocument.getElementById('timer').addEventListener('change', validTimer, false);\n\nfunction getFields(e) {\n  \n  if (/^toCards/.test(e.target.id)) {\n    if (e.target.value == \"Ні\") {\n    \tdocument.getElementById(\"toCardsQ\").innerHTML = '';\n    } else if (e.target.value == \"Так\") {\n    \tdocument.getElementById(\"toCardsQ\").innerHTML = '<input type=\"button\" id=\"cardsBtn\" name=\"cardsBtn\" value=\"+\"/><br>';\n      attrs.toCards = \"true\";\n    }\n  } else if (/^toEkb/.test(e.target.id)) {\n    if (e.target.value == \"Ні\") {\n    \tdocument.getElementById(\"toEkbQ\").innerHTML = '';\n    } else if (e.target.value == \"Так\") {\n    \tdocument.getElementById(\"toEkbQ\").innerHTML = '<input type=\"button\" id=\"ekbBtn\" name=\"ekbBtn\" value=\"+\"/><br>';\n      attrs.toEkb = \"true\";\n    }\n  } else if (/^toNrm/.test(e.target.id)) {\n    if (e.target.value == \"Ні\") {\n    \tdocument.getElementById(\"toNrmQ\").innerHTML = '';\n    } else if (e.target.value == \"Так\") {\n      document.getElementById(\"toNrmQ\").innerHTML = '<input type=\"button\" id=\"nrmBtn\" name=\"nrmBtn\" value=\"+\"/><br>';\n      attrs.toNrm = \"true\";\n\n    }\n  } else if (/^nrmBtn/.test(e.target.id)) {\n    \n    counters.nrmAtrCount++;\n    var all = counters.nrmAtrCount + counters.ekbAtrCount + counters.cardAtrCount;\n   \n   \trenderInfo(all, \"nrm\", e.target.id);\n   \n  } else if (/^ekbBtn/.test(e.target.id)) {\n    \n    counters.ekbAtrCount++;\n    var all = counters.nrmAtrCount + counters.ekbAtrCount + counters.cardAtrCount;\n   \n   \trenderInfo(all, \"ekb\", e.target.id);\n  } else if (/^cardsBtn/.test(e.target.id)) {\n    \n    counters.cardAtrCount++;\n    var all = counters.nrmAtrCount + counters.ekbAtrCount + counters.cardAtrCount;\n  \n    renderInfo(all, \"card\", e.target.id);\n\t}\n   \n}\n\nfunction renderInfo(count, type, target) {\n\tvar el, str = \"\";\n  \n  if (type == \"nrm\") {\n  \t el = document.getElementById(\"toNrmQ\");\n  } else if (type == \"ekb\") {\n  \t el = document.getElementById(\"toEkbQ\");\n  } else if (type == \"card\") {\n  \t el = document.getElementById(\"toCardsQ\");\n  }\n\n  if (el.children.length >= 1) {\n    //вычитаем старые значения\n    for (var i=0; i<el.childNodes.length; i++ ) {\n      str += el.childNodes[i].outerHTML;\n    }\n    \n    if (/^nrmBtn/.test(target)) {\n    \tselect = '<select class=\"attrField\" id=\"' + type + count + '\" name=\"' + type + count + '\">'+\n          '<option>precalc</option>'+\n        '</select></div>';;\n    } else if (/^ekbBtn/.test(target)) {\n    \tselect = '<select class=\"attrField\" id=\"' + type + count + '\" name=\"' + type + count + '\">'+\n          '<option>name</option>'+\n          '<option>age</option>'+\n        '</select></div>';;\n    } else if (/^cardsBtn/.test(target)) {\n    \tselect = '<select class=\"attrField\" id=\"' + type + count + '\" name=\"' + type + count + '\">'+\n          '<option>pan</option>'+\n          '<option>balance</option>'+\n          '<option>limit</option>'+\n        '</select></div>';;\n    }\n    \n    str += '<div style=\"display: flex; flex-direction: row;\"><input type=\"text\" class=\"attrField\" id=\"' + type + 'Attr'+ count + '\" name=\"' + type + 'Attr'+ i + '\" value=\"ATTR'+ count + '\" placeholder=\"ATTR'+ count + '\"/>'+ select;\n     \n  } else {\n  \tstr = el.childNodes[0].outerHTML;\n  }\n  \n  el.innerHTML = str;\n  attrs[\"ATTR\" + count] = \"\";\n\n}\n\n\nfunction res() {\n    clearTimeout(client.timerId);\n    render(counters, \"STOPED BY CLIENT\");\n}\n\nfunction validSid() {\n    var el = document.getElementById('sid'),\n        errOutElement = document.getElementById(\"errOut\");\n    \n    if (/[а-я А-Я]/.test(el.value)) {\n        errOutElement.innerHTML =  \"ВНИМАНИЕ: SID исправлен\";\n        errOutElement.style.color = \"red\";\n    }\n    \n    el.value = el.value.replace(/[а-я А-Я]/gi, \"\");\n    \n    fetch(\"/sidValid/\"+el.value)\n        .then(response => response.json())\n        .then(res => {\n            console.log(res);\n            if (res.result == \"error\") alert(\"Невалидная сессия\");\n        });\n\n}\n\nfunction validTimer() {\n    var el = document.getElementById('timer'),\n        errOutElement = document.getElementById(\"errOut\");\n    \n    if (/\\D/.test(el.value)) {\n        errOutElement.innerHTML =  \"ВНИМАНИЕ: Timer исправлен\";\n        errOutElement.style.color = \"red\";\n    }\n    \n    el.value = el.value.replace(/[\\D]/gi, \"\");\n}\n\nfunction readFile(evt) {\n  var files = evt.target.files,\n      file = files[0],\n      reader = new FileReader(),\n  \t  items = [], \n      rows, \n      itemObj = {}, \n      itemArr, \n      itemObjArr;\n  \n  var fileInfo = file.name.split(\".\"),\n      fileType = fileInfo[fileInfo.length-1];\n  \n  if (fileType.toLowerCase() != \"csv\") {\n      alert(\"Выберите *.CSV файл\");\n      return \"\";\n  }\n  \n  client.opsArr = [];\n  \n  reader.onload = function(event) {\n    rows = event.target.result.split(\"\\n\");\n\n    for (var i=0; i<rows.length-1; i++) {\n      var str = rows[i].replace(\"\\r\", \"\");\n      itemArr = str.split(\"|\");\n      if (i == 0) {\n        itemObjArr = itemArr; \n        for (var k=0; k<itemObjArr.length; k++) {\n          itemObj[itemObjArr[k]] = \"\";\n        }\n      } else {\n        var obj = {};\n        for (var j=0; j<itemArr.length; j++) {\n        \tif (itemArr[j] == \"\") continue;\n          obj[itemObjArr[j]] = itemArr[j];\n        }\n        client.opsArr.push(obj);\n      }\n    } \n    \n    render();\n    document.getElementById(\"btn\").style.backgroundColor = \"green\";\n    console.log(attrs);\n\n  }\n  reader.readAsText(file);\n}\n\nfunction reloadAttrsList() {\n\tfor (var i in attrs) {\n  \tif (attrs[i] == \"\") delete attrs[i];\n  }\n}\n\nfunction postToUrl() {\n  var sid = document.getElementById(\"sid\").value,\n  \t\ttimer = +document.getElementById(\"timer\").value;\n  \n  //забрать все значения атрибутов\n  var nrm = document.getElementById(\"toNrmQ\");\n  var ekb = document.getElementById(\"toEkbQ\");\n  var card = document.getElementById(\"toCardsQ\");\n  \n  reloadAttrsList();\n  Object.assign(attrs, getAllAttrs(nrm, ekb, card));\n  \n  console.log(attrs);\n  \n  if (typeof timer == \"undefined\" || timer == \"\" || timer <= 10) timer = 1000;     \n  if (!Array.isArray(client.opsArr)) return ;\n \n  //наполнить заявку новыми атрибутами\n  \n  sendPost(client.opsArr, sid, counters, timer);\n  \n} \n\nfunction getAllAttrs(nrm, ekb, card) {\n  var obj = {};\n\n  //пройдемся по всем свойствам\n  for (var k=0; k<ekb.childNodes.length; k++) {\n  \tif (ekb.childNodes[k].nodeName == \"DIV\") {\n    \tconsole.log(ekb.childNodes[k].children[0].value + \" = \" + ekb.childNodes[k].children[1].value);\n      obj[ekb.childNodes[k].children[0].value] = ekb.childNodes[k].children[1].value;\n    }\n  }\n  \n  for (var l=0; l<nrm.childNodes.length; l++) {\n  \tif (nrm.childNodes[l].nodeName == \"DIV\") {\n    \tconsole.log(nrm.childNodes[l].children[0].value + \" = \" + nrm.childNodes[l].children[1].value);\n      obj[nrm.childNodes[l].children[0].value] = nrm.childNodes[l].children[1].value;\n    }\n  }\n  \n  for (var m=0; m<card.childNodes.length; m++) {\n  \tif (card.childNodes[m].nodeName == \"DIV\") {\n    \tconsole.log(card.childNodes[m].children[0].value + \" = \" + card.childNodes[m].children[1].value);\n      obj[card.childNodes[m].children[0].value] = card.childNodes[m].children[1].value;\n    }\n  }\n  \n  return obj;\n}\n\nfunction sendPost(opsArr, sid, obj, timer) {\n\n  var req = getXmlHttp();\n  var ops = opsArr.shift();\n  \n  if (typeof ops == \"undefined\") {\n    return ;\n  }\n  \n  if (typeof attrs == \"object\") {\n  \tfor (var k in attrs) {\n    \tops[k] = attrs[k];\n    }\n  }\n  \n  req.open('POST', \"/fileLoader/:action\", true);\n  req.setRequestHeader('Content-Type', 'application/json');\n  \n  ops.sid = sid;\n  req.send(JSON.stringify(ops));\n  \n  req.onreadystatechange = function() {\n    \n    if (req.readyState == 4) {\n      var text;\n      var respObj = JSON.parse(req.response);\n      \n      if (typeof respObj.error == \"object\") {\n        obj.err++;\n        text = respObj.error.text;\n        console.log(\"errorText = \", respObj.error.text);\n      }\n      \n      render(obj, text);\n      client.timerId = setTimeout(function() {\n      \tsendPost(opsArr, sid, obj, timer);\n      }, timer);\n    }\n  };\n}\n\nfunction render(obj, text) {\n\tvar outElement = document.getElementById(\"out\"),\n\t    errElement = document.getElementById(\"err\"),\n\t    errOutElement = document.getElementById(\"errOut\");\n  \n  if (typeof obj == \"object\") {\n  \t\n  \tobj.all++;\n    outElement.innerHTML = \"Counter = \" + obj.all;\n    errElement.innerHTML = \"Error counter = \" + obj.err;\n    if (typeof text != \"undefined\") {\n        errOutElement.innerHTML =  obj.err + \". errorText = \" + text + \"---<Br><Hr>\" + errOutElement.innerText.replace(/---/gi, \"---<Br><Hr>\");\n        errOutElement.style.color = \"black\";\n    }\n  } else {\n  \toutElement.innerHTML = \"\";\n  \terrElement.innerHTML = \"\";\n  \terrOutElement.innerHTML = \"\";\n  \tcounters.all = 0;\n  \tcounters.err = 0;\n  }\n}\n\nfunction getXmlHttp(){\n  var xmlhttp;\n  try {\n    xmlhttp = new ActiveXObject(\"Msxml2.XMLHTTP\");\n  } catch (e) {\n    try {\n      xmlhttp = new ActiveXObject(\"Microsoft.XMLHTTP\");\n    } catch (E) {\n      xmlhttp = false;\n    }\n  }\n  if (!xmlhttp && typeof XMLHttpRequest!='undefined') {\n    xmlhttp = new XMLHttpRequest();\n  }\n  return xmlhttp;\n}\n\n</script>\n</html>",
+        "output": "str",
+        "x": 300,
+        "y": 100,
+        "wires": [
+            [
+                "8f1a9f63.d774f"
+            ]
+        ]
+    },
+    {
+        "id": "67f220db.0bb6c",
+        "type": "comment",
+        "z": "f100698d.0e9dd8",
+        "name": "Приложение фронт",
+        "info": "",
+        "x": 150,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "a18cca2e.c4f2b8",
+        "type": "comment",
+        "z": "f100698d.0e9dd8",
+        "name": "Приложение бэк",
+        "info": "",
+        "x": 140,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "282483dd.8befec",
+        "type": "http in",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "url": "/fileLoader/:action",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 280,
+        "wires": [
+            [
+                "4593a399.31c9bc"
+            ]
+        ]
+    },
+    {
+        "id": "4593a399.31c9bc",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "JSON",
+        "func": "msg.SID = msg.payload.sid;\n\ndelete msg.payload.sid;\n\nmsg.body = msg.payload;\n\nmsg.validation = \"true\";\n\nif (typeof msg.payload.phone == \"undefined\" && typeof msg.payload.client_id == \"undefined\" && typeof msg.payload.ldap == \"undefined\") {\n    msg.validation = \"false\";\n}\n\nfor (var k in msg.body) {\n    msg[k] = msg.body[k];\n}\n\nif (typeof msg.payload.client_id == \"undefined\" && (msg.toEkb == \"true\" || msg.toNrm == \"true\" || msg.toCards == \"true\")) {\n    msg.validation = \"false\";\n    msg.description = \"Не указан client_id для проверки\"\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 330,
+        "y": 280,
+        "wires": [
+            [
+                "81367682.4a52c8",
+                "4d131e08.68d28"
+            ]
+        ]
+    },
+    {
+        "id": "932ca5fd.a43a38",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "Готовим тело простого запроса",
+        "func": "var addrtype, \n    addrid, \n    attrs = {\n        /*\n        \"код атрибута\":\"Значение атрибута 1\",\n        \"код атрибута\":\"Значение атрибута 2\",\n        \"COMM\":\"Комментарий\"\n        */\n    },\n    history = [\n        /*{\n            \"st\":\"состояние\",\n            \"ch\":\"канал\",\n            \"con\":\"контактные данные\",\n            \"com\":\"комментарий\",\n            \"dt\": \"дата в формате yyyyMMddHHmmss / yyyyMMddHHmm / yyyyMMdd - если не передавать будет getdate()\"\n        }*/\n     ];\n\n//запишем тело в заявку\nfor (var k in msg.body) {\n    msg[k] = msg.body[k];\n    if (/^(ATTR[0-9]|COMM)$/.test(k)) {\n        attrs[k] = msg.body[k];\n    }\n    \n    if (/^(st|ch|com)$/.test(k)) {\n        if (typeof history[0] != \"object\") history[0] = {};\n        history[0][k] = msg.body[k];\n    }\n}\n\n \n\nif (typeof msg.phone != \"undefined\" && /^(\\380[0-9]{9}|380[0-9]{9})$/.test(msg.phone)) {\n    addrtype = \"MB\";\n    if (/^380[0-9]{9}$/.test(msg.phone)) msg.phone = \"+\" + msg.phone;\n    addrid = msg.phone;\n} else if (typeof msg.client_id != \"undefined\" && msg.client_id !== \"\") {\n    addrtype = \"CI\";\n    addrid = msg.client_id;\n} else if (typeof msg.ldap != \"undefined\" && /^([A-Z a-z]{2}[0-9]{6}[A-Z a-z]{3}|[A-Z a-z]{2}[0-9]{6}[A-Z a-z]{3}[0-9]{1})$/.test(msg.ldap)) {\n    addrtype = \"LD\";\n    addrid = msg.ldap;\n}\n\nmsg.payload = {\n   \"evt\": msg.evt,\n   \"st\":\"WT\",\n   \"src\":\"AGENT\",\n   \"addrid\": addrid,\n   \"addrtype\": addrtype,\n   \"bank\":\"PB\",\n   \"lang\":\"UA\",\n   \"extref\": addrid + \"_\" + new Date().getTime(),\n   \"attrs\" : attrs,\n   \"history\": history\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 670,
+        "y": 340,
+        "wires": [
+            [
+                "c0c5fee4.20fac"
+            ]
+        ]
+    },
+    {
+        "id": "2219e3ea.2b03fc",
+        "type": "http response",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "statusCode": "200",
+        "headers": {},
+        "x": 1340,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "c0c5fee4.20fac",
+        "type": "http request",
+        "z": "f100698d.0e9dd8",
+        "name": "in CRM",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": false,
+        "url": "http://crm.privatbank.ua:4000/Contact/api/event/add?sid={{SID}}",
+        "tls": "",
+        "proxy": "",
+        "authType": "",
+        "x": 1180,
+        "y": 340,
+        "wires": [
+            [
+                "2219e3ea.2b03fc"
+            ]
+        ]
+    },
+    {
+        "id": "fab7a830.dcd118",
+        "type": "comment",
+        "z": "f100698d.0e9dd8",
+        "name": "Отправк в CRM",
+        "info": "# На старт \n\n**поступает массив клиентов для которых:**\n * необходимо создать СКК\n * проверить результат через время Т",
+        "x": 620,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "c41e6ffd.1429e",
+        "type": "debug",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 1330,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "8f1a9f63.d774f",
+        "type": "http response",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "statusCode": "200",
+        "headers": {},
+        "x": 460,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "11166ab5.1468a5",
+        "type": "http request",
+        "z": "f100698d.0e9dd8",
+        "name": "Запрос на проверку",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": false,
+        "url": "https://promin.privatbank.ua:8072/ChameleonServer/sessions/get/{{sid}}",
+        "tls": "",
+        "proxy": "",
+        "authType": "",
+        "x": 580,
+        "y": 640,
+        "wires": [
+            [
+                "d4d9fa95.d5a688"
+            ]
+        ]
+    },
+    {
+        "id": "d4d9fa95.d5a688",
+        "type": "switch",
+        "z": "f100698d.0e9dd8",
+        "name": "Фильтр упавшей сессии",
+        "property": "payload.state",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "neq",
+                "v": "ACTIVE",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "ACTIVE",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 810,
+        "y": 640,
+        "wires": [
+            [
+                "82c31504.af4598"
+            ],
+            [
+                "d2e70591.9b1d58"
+            ]
+        ]
+    },
+    {
+        "id": "98490ebb.75af8",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "Активная сессия",
+        "func": "msg.sid = msg.req.params.sid;\n\nmsg.headers = {\n    \"Content-Type\": \"application/json;charset=UTF-8\",\n    \"Accept\": \"application/json;charset=UTF-8\"\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 370,
+        "y": 640,
+        "wires": [
+            [
+                "11166ab5.1468a5"
+            ]
+        ]
+    },
+    {
+        "id": "98931fa8.6f08b",
+        "type": "http in",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "url": "/sidValid/:sid",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 140,
+        "y": 640,
+        "wires": [
+            [
+                "98490ebb.75af8"
+            ]
+        ]
+    },
+    {
+        "id": "82c31504.af4598",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "подготовка ответа",
+        "func": "msg.payload = {\n    \"result\": \"error\",\n    \"description\": \"Невалиданя сессия\"\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1030,
+        "y": 620,
+        "wires": [
+            [
+                "1b02f297.32914d"
+            ]
+        ]
+    },
+    {
+        "id": "d2e70591.9b1d58",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "подготовка ответа",
+        "func": "msg.payload = {\n    \"result\": \"ok\",\n    \"description\": \"Валиданя сессия\"\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1030,
+        "y": 660,
+        "wires": [
+            [
+                "1b02f297.32914d"
+            ]
+        ]
+    },
+    {
+        "id": "1b02f297.32914d",
+        "type": "http response",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "statusCode": "200",
+        "headers": {},
+        "x": 1200,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "7460f97b.967418",
+        "type": "comment",
+        "z": "f100698d.0e9dd8",
+        "name": "Валидация сессии",
+        "info": "",
+        "x": 150,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "81367682.4a52c8",
+        "type": "switch",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "property": "validation",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "true",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "false",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 460,
+        "y": 280,
+        "wires": [
+            [
+                "795d1e74.4e4c4"
+            ],
+            [
+                "5a3aa5bb.d9de9c"
+            ]
+        ]
+    },
+    {
+        "id": "5a3aa5bb.d9de9c",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "Готовим тело Ошибки",
+        "func": "if (typeof msg.description != \"undefined\") {\n    msg.payload = {\n       \"error\": {\n           \"text\": msg.description\n       }\n    };\n} else {\n    msg.payload = {\n       \"error\": {\n           \"text\": \"Не указаны обязательные поля client_id | phone | ldap\"\n       }\n    };\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 640,
+        "y": 280,
+        "wires": [
+            [
+                "2219e3ea.2b03fc"
+            ]
+        ]
+    },
+    {
+        "id": "9008c896.78e3a8",
+        "type": "link in",
+        "z": "f100698d.0e9dd8",
+        "name": "Вход в кшелек",
+        "links": [
+            "46aec06c.1c80d"
+        ],
+        "x": 95,
+        "y": 860,
+        "wires": [
+            [
+                "2406f91.e28e906"
+            ]
+        ]
+    },
+    {
+        "id": "2406f91.e28e906",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "Устанавливаем Headers",
+        "func": "msg.payload.sid = msg.SID;\n\nmsg.headers = {\n    \"Authorization\": msg.SID,\n    \"Accept\": \"application/json\"\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 250,
+        "y": 860,
+        "wires": [
+            [
+                "e55a7aee.3fcf18"
+            ]
+        ]
+    },
+    {
+        "id": "e55a7aee.3fcf18",
+        "type": "http request",
+        "z": "f100698d.0e9dd8",
+        "name": "Запрос в кошелек",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": false,
+        "url": "https://stat.privatbank.ua/stat/api/purse/module/cardsforwave/byekb/{{client_id}}",
+        "tls": "",
+        "proxy": "",
+        "authType": "",
+        "x": 470,
+        "y": 860,
+        "wires": [
+            [
+                "fadd660.8bf7c98"
+            ]
+        ]
+    },
+    {
+        "id": "de51a872.b94bc8",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "Функция выбора конкретных карт",
+        "func": "if (typeof msg.body !== \"object\") {\n    msg.body = {};\n} \nmsg.body.cards = msg.payload;\nmsg.payload = {};\n\n//запуск:\n// установка текущей даты (формат: мм/гг)\nvar date = new Date();\nvar curMonth = compare(date.getMonth() + 1);\nvar curYear = date.getFullYear().toString().substr(2);\n\nif(Array.isArray(msg.body.cards) && msg.client_status != \"vip\") {\n  \n  msg.payload.prod_arr = product_from_ARR(msg.body.cards);\n  \n  if (msg.payload.prod_arr.length === 0) {\n    \n    var prod_arr_exp = exp_product_from_ARR(msg.body.cards);\n    \n    if (prod_arr_exp.length > 0) {\n      \n      msg.payload.exp_cards = true;\n      msg.payload.prod_arr_exp = prod_arr_exp;\n\n    }\n    \n  }\n  \n  msg.is_GOLD = getFlagGold(msg.body.cards);\n  \n} else if(Array.isArray(msg.body.cards) && msg.client_status == \"vip\") {\n  \n  msg.payload.prod_arr = product_from_Vip_ARR(msg.body.cards);\n  \n  if (msg.payload.prod_arr.length > 0) {\n    msg.is_GOLD = \"N\";\n    msg.is_VIP = \"Y\";\n    msg.most_vip = most_vip(msg.payload.prod_arr);\n    \n  } else {\n    msg.payload.prod_arr = product_from_ARR(msg.body.cards);\n  \n  if (msg.payload.prod_arr.length === 0) {\n    \n    var prod_arr_exp = exp_product_from_ARR(msg.body.cards);\n    \n    if (prod_arr_exp.length > 0) {\n      \n      msg.payload.exp_cards = true;\n      msg.payload.prod_arr_exp = prod_arr_exp;\n\n    }\n    \n  }\n  \n  msg.is_GOLD = getFlagGold(msg.body.cards);\n  \n  }\n    \n} else {\n \n msg.payload.description = msg.payload.error;\n msg.payload.err = \"Кошелек\";\n    \n}\n\nif (Array.isArray(msg.payload.prod_arr) && msg.payload.prod_arr.length > 1) msg.payload.prod_arr = msg.payload.prod_arr.sort(compareLimits);\n\nmsg.creditСards = msg.payload.prod_arr;\n\n//подставим нужные значения\nfor (var j in msg) {\n    if (/^ATTR[0-9]/.test(j) && typeof msg.creditСards[0][msg[j]] != \"undefined\") {\n        msg[j] = msg.creditСards[0][msg[j]];\n    }\n}\n\nreturn msg;\n\n\n\n//функции:*/\nfunction compare(a){\n\treturn a<10 ? \"0\"+a : a+\"\";\n}\n\nfunction product_from_ARR(cards) {\n\n  var prod_arr = [];\n  var card = {};\n  var curMonth = compare(date.getMonth() + 1);\n  var curY = date.getFullYear().toString().substr(2);\n\n  for (var i=0; i<cards.length; i++) {\n  \tif (cards[i].product_type==\"KUN\" && +cards[i].currency==980 && cards[i].bank==\"PB\" && cards[i].isCard3rdFace!=\"Y\" && cards[i].contract_state==\"a\" && (cards[i].card_state==\"1\" || cards[i].card_state==\"5\") && (+cards[i].pan.substr(0,1)==4 || +cards[i].pan.substr(0,1)==5) && ((cards[i].exdate.substr(0, 2) >= +curMonth && cards[i].exdate.substr(2) == +curY)  || (cards[i].exdate.substr(2) > +curY))) {\n        card = {\n              \"pan\":              cards[i].pan,\n              \"refcontract\":   cards[i].refcontract, \n              \"card_name\":  cards[i].card_name,\n              \"isGold\":          cards[i].isGold,\n              \"balance\":       cards[i].balance,\n              \"card_state\":   cards[i].card_state,\n              \"limit\":             cards[i].credit_limit,\n              \"remain\":        cards[i].remain,\n              \"ledgerbalance\": cards[i].ledgerbalance,\n              \"exdate\": cards[i].exdate\n    \t\t};\n        prod_arr.push(card);\n  \t}\n  }\n  \n  return prod_arr;\n}\n\nfunction exp_product_from_ARR(cards) {\n  var prod_arr = [];\n  var card = {};\n  var curMonth = compare(date.getMonth() + 1);\n  var curYear = date.getFullYear().toString().substr(2);\n  \n  for (var i=0; i<cards.length; i++) {\n  \tif (cards[i].product_type==\"KUN\" && +cards[i].currency==980 && cards[i].bank==\"PB\" && cards[i].isCard3rdFace!=\"Y\" && cards[i].contract_state==\"a\" && (cards[i].card_state==\"1\" || cards[i].card_state==\"5\") && (+cards[i].pan.substr(0,1)==4 || +cards[i].pan.substr(0,1)==5)) {\n        if ( (+curMonth - (+cards[i].exdate.substr(0, 2)) >= 6 && cards[i].exdate.substr(2) == +curYear) || (+curYear - cards[i].exdate.substr(2) > 0 && (+curMonth + (12 - (+cards[i].exdate.substr(0, 2))) >= 6)) ) {\n        \tmsg.body.isEXPIRED = true;\n        }         \n        card = {\n              \"pan\":              cards[i].pan,\n              \"refcontract\":   cards[i].refcontract, \n              \"card_name\":  cards[i].card_name,\n              \"isGold\":          cards[i].isGold,\n              \"balance\":       cards[i].balance,\n              \"card_state\":   cards[i].card_state,\n              \"limit\":             cards[i].credit_limit,\n               \"remain\":        cards[i].remain,\n               \"ledgerbalance\": cards[i].ledgerbalance,\n               \"exdate\": cards[i].exdate\n    \t\t};\n        prod_arr.push(card);\n  \t}\n  }\n  return prod_arr;\n}\n\nfunction compareLimits(a, b) {\n  var A = a.credit_limit;\n  var B = b.credit_limit;\n  \n  return +B - (+A);\n}\n\nfunction getFlagGold(cards) {\n  var prod_arr = [];\n  \n  if (!Array.isArray(cards)) return \"N\";\n  \n  var card = {};\n  var curMonth = compare(date.getMonth() + 1);\n  var cur_Year = date.getFullYear().toString().substr(2);\n  \n  for (var i=0; i<cards.length; i++) {\n        if (cards[i].isGold==\"Y\" && (+cards[i].pan.substr(0,1)==4 || +cards[i].pan.substr(0,1)==5) && ((cards[i].exdate.substr(0, 2) >= +curMonth && cards[i].exdate.substr(2) == +cur_Year)  || (cards[i].exdate.substr(2) > +cur_Year))) {\n        card = {\n              \"pan\":              cards[i].pan,\n              \"refcontract\":   cards[i].refcontract, \n              \"card_name\":  cards[i].card_name,\n              \"isGold\":          cards[i].isGold,\n              \"balance\":       cards[i].balance,\n              \"card_state\":   cards[i].card_state,\n              \"limit\":             cards[i].credit_limit,\n               \"remain\":        cards[i].remain,\n               \"ledgerbalance\": cards[i].ledgerbalance,\n               \"exdate\": cards[i].exdate\n    };\n        prod_arr.push(card);\n        }\n  }\n  if (prod_arr.length > 0) return \"Y\";\n  return \"N\";\n}\n\nfunction most_vip(prod_arr) {\n  var most = 0;\n  var most_el;\n\t\n  for (var z=0; z<prod_arr.length; z++) {\n  \tif (prod_arr[z].most_vip > most) {\n   \t\tmost_el = z;\n\t\t}\n\t}\n\treturn most_el;\n}\n\nfunction product_from_Vip_ARR(cards) {\n\tvar prod_arr = [], \n  \tcard = {},\n    prior_1 = [\"FORL\", \"FRE3\", \"EXI2\", \"PPF1\", \"REP1\", \"EXI1\", \"FRE1\", \"FOR1\", \"LOYD\", \"EXID\", \"VIPP\"],\n    prior_2 = [\"VIPE\"],\n    prior_3 = [\"MCWS\", \"MCWL\", \"WS55\", \"WS05\", \"WS0P\", \"WS5P\", \"MCWF\", \"WS00\", \"VIPW\"],\n    prior_4 = [\"INFI\", \"INFA\", \"INFL\", \"INPA\", \"INPI\", \"VIPI\"];\n\n\n\tfor (var i=0; i<cards.length; i++) {\n     if (cards[i].product_type == \"KUN\" && \n     /FORL|FRE3|EXI2|PPF1|REP1|EXI1|FRE1|FOR1|LOYD|EXID|VIPP|VIPE|MCWS|MCWL|WS55|WS05|WS0P|WS5P|MCWF|WS00|VIPW|INFI|INFA|INFL|INPA|INPI|VIPI/.test(cards[i].contract_type) && \n     +cards[i].currency==980 && \n     cards[i].bank==\"PB\" && \n     cards[i].isCard3rdFace==\"N\" && \n     cards[i].contract_state==\"a\" && \n     (cards[i].card_state==\"1\" || cards[i].card_state==\"5\") && \n     (+cards[i].pan.substr(0,1)==4 || +cards[i].pan.substr(0,1)==5) && \n     cards[i].pan.substr(0,9)!=\"545708221\" && \n     ((cards[i].exdate.substr(0, 2) >= +curMonth && cards[i].exdate.substr(2) == +curYear)  || (cards[i].exdate.substr(2) > +curYear)) && \n     cards[i].idekbOwn == cards[i].idEkbPan ) {\n\n        var most_vip;\n        if(prior_4.indexOf(cards[i].contract_type) != -1) {\n          most_vip = 4;\n        } else if(prior_3.indexOf(cards[i].contract_type) != -1) {\n          most_vip = 3;\n        } else if(prior_2.indexOf(cards[i].contract_type) != -1) {\n          most_vip = 2;\n        } else if(prior_1.indexOf(cards[i].contract_type) != -1) {\n          most_vip = 1;\n        }\n\n        card = {\n              \"pan\":                cards[i].pan,\n              \"refcontract\":        cards[i].refcontract, \n              \"card_name\":          cards[i].card_name,\n              \"isGold\":             cards[i].isGold,\n              \"contract_type\":      cards[i].contract_type,\n              \"most_vip\":           most_vip,\n              \"name_en\":            cards[i].card_name_en,\n              \"exdate\":             cards[i].exdate,\n              \"balance\":            cards[i].balance,\n              \"credit_limit\":       cards[i].credit_limit,\n               \"currency\":          cards[i].currency\n   \t\t\t};\n      \tprod_arr.push(card);\n\t\t}\n\t}\n\treturn prod_arr;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 840,
+        "y": 860,
+        "wires": [
+            [
+                "c965ebe5.12e3a8",
+                "81f02efc.5fa8c"
+            ]
+        ]
+    },
+    {
+        "id": "c965ebe5.12e3a8",
+        "type": "link out",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "links": [
+            "8f680e6.9ef15f"
+        ],
+        "x": 1015,
+        "y": 860,
+        "wires": []
+    },
+    {
+        "id": "49a390bd.e60d7",
+        "type": "debug",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 630,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "2b04bf58.5a043",
+        "type": "debug",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 190,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "ccb9b95c.709618",
+        "type": "comment",
+        "z": "f100698d.0e9dd8",
+        "name": "Доопределение параметров карты",
+        "info": "",
+        "x": 200,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "8c9e98d6.bb3bc8",
+        "type": "http request",
+        "z": "f100698d.0e9dd8",
+        "name": "Обращаемся к ЕКБ",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": false,
+        "url": "https://cis.privatbank.ua/all",
+        "tls": "",
+        "proxy": "",
+        "authType": "",
+        "x": 420,
+        "y": 1020,
+        "wires": [
+            [
+                "55cdd9fa.de7928"
+            ]
+        ]
+    },
+    {
+        "id": "244936c9.b825aa",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "Готовим запрос",
+        "func": "var client_id = msg.client_id;\nmsg.payload = {};\nmsg.payload.r = [];\nvar x = {\n    \"type\":\"INF_NEW\",\n    \"cntr\":\"UA\",\n    \"i\":{\n        \"Id\": client_id\n        \n    }, \n    \"t\":{\n        \"returnContact\":\"Y\", \n        \"returnClientAttrs\": \"Y\",\n        \"ReturnFlVip\": \"Y\"\n    },\n    \"sid\": msg.SID,\n    \"o\":[\n        \"ruLName\",\n        \"ruFName\",\n        \"AgentState\",\n        \"ruMName\",\n        \"StrClientID\",\n        \"Lang\",\n        \"Id\",\n        \"PotentialVIP\",\n        \"St\",\n        \"DB\",\n        \"DTS\",\n        \"Sex\"\n        ]\n    \n};\nmsg.payload.r.push(x);\n\nmsg.headers = {};\nmsg.headers[\"Content-type\"] = \"application/json\";\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 220,
+        "y": 1020,
+        "wires": [
+            [
+                "8c9e98d6.bb3bc8"
+            ]
+        ]
+    },
+    {
+        "id": "55cdd9fa.de7928",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "Формируем данные для ответа",
+        "func": "var data = msg.payload;\n\nvar body = {};\n\nbody.phone = getPhone(data.r[0].INF_NEW);\nbody.name = getFio(data.r[0].INF_NEW);\nbody.client_id = getId(data.r[0].INF_NEW);\nbody.str_client_id = getStrId(data.r[0].INF_NEW);\ngetAllPhones();\nbody.age = getAge(getDb(data.r[0].INF_NEW));\nbody.statusAgent = getAgentStatus(data.r[0].INF_NEW);\nbody.st = getSt(data.r[0].INF_NEW);\nbody.sex = getSex(data.r[0].INF_NEW);\nbody.DTS = getUnix(getDTS(data.r[0].INF_NEW));\nbody.vip = getVip(data.r[0].INF_NEW);\nbody.isVip = getV(data.r);\n\n\nmsg.client = body;\n\n//подставим нужные значения\nfor (var j in msg) {\n    if (/^ATTR[0-9]$/.test(j) && typeof msg.client[msg[j]] != \"undefined\") {\n        msg[j] = msg.client[msg[j]];\n    }\n}\n\nreturn msg;\n\nfunction getV(arr){\n    var is_VIP; \n    for (var i=0; i<arr.length; i++) {       //берем каждый объект из массива r\n     var obj = arr[i];\n     for (var k in obj) {           // проверяем на совпадение с INF_NEW\n       if ( k == \"INF_NEW\") {\n          is_VIP = obj[k][0].VIP_MANAGER.IsVip;\n        }\n      }              \n    }\n    return is_VIP;\n}\n\nfunction getAllPhones() {\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t//забираем телефоны\n  var arr = data.r[0].INF_NEW[0].CONT_INF;\n  body.phones = [];\n  for (var i=0; i<arr.length; i++) {\n      if (arr[i].Type == \"3\") {\n         body.phones.push(arr[i].Number.replace(\"+\", \"\"));\n    }\n  }\n}\n\nfunction Phone(p) {\n  var phone = p.replace(/-| |\\(|\\)|\\+|\\.|\\,/g, \"\"); //убираем лишнее\n  return phone;\n}\n\nfunction getPhone (arr) {\n  if (Array.isArray(arr)){\n  \tfor (var i=0; i<arr.length; i++) {\n      if (\"CONT_INF\" in arr[i]) {\n      \tfor (var j=0; j<arr[i][\"CONT_INF\"].length; j++) {\n          if (arr[i][\"CONT_INF\"][j].GroupMain == \"Y\" && arr[i][\"CONT_INF\"][j].Number != \"\" && /\\+380/.test(arr[i][\"CONT_INF\"][j].Number)) {\n          \treturn arr[i][\"CONT_INF\"][j].Number;\n          }\n        }\n        //return \"\";\n      }\n  \t}\n  }\n}\n\nfunction getFio (arr) {\n  if (Array.isArray(arr)){\n  \tfor (var i=0; i<arr.length; i++) {\n      if (\"INF_NEW\" in arr[i] && arr[i][\"INF_NEW\"].ruFName != \"null\" && arr[i][\"INF_NEW\"].DB != \"null\" ) return arr[i][\"INF_NEW\"].ruLName + \" \" + arr[i][\"INF_NEW\"].ruFName + \" \" + arr[i][\"INF_NEW\"].ruMName;\n  \t}\n  }\n}\n\nfunction getStrId (arr) {\n  if (Array.isArray(arr)){\n  \tfor (var i=0; i<arr.length; i++) {\n      if (\"INF_NEW\" in arr[i] && arr[i][\"INF_NEW\"].ruFName != \"null\" && arr[i][\"INF_NEW\"].DB != \"null\" ) return arr[i][\"INF_NEW\"].StrClientID;\n  \t}\n  }\n}\n\nfunction getId (arr) {\n  if (Array.isArray(arr)){\n  \tfor (var i=0; i<arr.length; i++) {\n      if (\"INF_NEW\" in arr[i] && arr[i][\"INF_NEW\"].ruFName != \"null\" && arr[i][\"INF_NEW\"].DB != \"null\") return arr[i][\"INF_NEW\"].Id;\n  \t}\n  }\n}\n\nfunction getAge (DB) {\n  var age;\n  var str = DB;\n  if (str == \"null\" || str == \"\" || typeof str == \"undefined\") return \"-\";\n  var b_y = str.substr(0, 4);\n  var b_m = str.substr(5, 2);\n  var b_d = str.substr(8, 2); \n  var Y = new Date().getFullYear();\n  var M = new Date().getMonth()+1;\n  var D = new Date().getDate();\n  \n  if (+b_m > +M) {\n    age = Y - b_y - 1;\t\n  } else {\n  \tif (+b_m == +M && +D < +b_d) {\n  \t\tage = +Y - b_y - 1;\n  \t} else {\n  \t\tage = +Y - b_y;\n  \t}\n  }\n\n  return age;\n}\n\nfunction getSt (arr) {\n  if (Array.isArray(arr)){\n  \tfor (var i=0; i<arr.length; i++) {\n      if (\"INF_NEW\" in arr[i] && arr[i][\"INF_NEW\"].ruFName != \"null\" && arr[i][\"INF_NEW\"].DB != \"null\") return arr[i][\"INF_NEW\"].St;\n  \t}\n  }\n}\n\nfunction getDb (arr) {\n  if (Array.isArray(arr)){\n  \tfor (var i=0; i<arr.length; i++) {\n      if (\"INF_NEW\" in arr[i] && arr[i][\"INF_NEW\"].ruFName != \"null\" && arr[i][\"INF_NEW\"].DB != \"null\") return arr[i][\"INF_NEW\"].DB;\n  \t}\n  }\n}\n\nfunction getAgentStatus(arr) {\n\tif (Array.isArray(arr)){\n  \tfor (var i=0; i<arr.length; i++) {\n      if (\"P_CLIENTATTRS\" in arr[i]) {\n      \tvar statuses = arr[i][\"P_CLIENTATTRS\"].filter(function(item) {\n          if (item.AttrTypeId == 70) return item;\n        });\n      return statuses;\n      }\n  \t}\n  }\n}\n\nfunction getName (arr) {\n  if (Array.isArray(arr)){\n  \tfor (var i=0; i<arr.length; i++) {\n      if (\"INF_NEW\" in arr[i] && arr[i][\"INF_NEW\"].ruFName != \"null\" && arr[i][\"INF_NEW\"].DB != \"null\" ) return {\"S\": arr[i][\"INF_NEW\"].ruLName, \"N\": arr[i][\"INF_NEW\"].ruFName, \"L\": arr[i][\"INF_NEW\"].ruMName};\n  \t}\n  }\n}\n\nfunction getSex (arr) {\n  if (Array.isArray(arr)){\n  \tfor (var i=0; i<arr.length; i++) {\n      if (\"INF_NEW\" in arr[i] && arr[i][\"INF_NEW\"].ruFName != \"null\" && arr[i][\"INF_NEW\"].DB != \"null\") {\n      \tif (arr[i][\"INF_NEW\"].Sex == \"\" || !arr[i][\"INF_NEW\"].Sex || arr[i][\"INF_NEW\"].Sex == \"undefined\") {\n        \tvar SexByRussianName = (function(){\n\n              function SexByRussianName(surname, first_name, patronymic) {\n                this.surname = surname;\n                this.first_name = first_name;\n                this.patronymic = patronymic;\n              };\n\n              SexByRussianName.FEMALE = 0;\n              SexByRussianName.MALE = 1;\n\n              SexByRussianName.SURNAME = 0;\n              SexByRussianName.PATRONYMIC = 1;\n              SexByRussianName.FIRST_NAME = 2;\n\n              SexByRussianName.surname_completions = [\n                ['ова', 'ева', 'ина', 'ая', 'яя', 'екая', 'цкая'],\n                ['ов', 'ев' ,'ин' ,'ын', 'ой', 'цкий', 'ский', 'цкой', 'ской']\n              ];\n              SexByRussianName.names = [\n                ['авдотья', 'аврора', 'агата', 'агния', 'агриппина', 'ада', 'аксинья', 'алевтина', 'александра', 'алёна', 'алена', 'алина', 'алиса', 'алла', 'альбина', 'амалия', 'анастасия', 'ангелина', 'анжела', 'анжелика', 'анна', 'антонина', 'анфиса', 'арина', 'белла', 'божена', 'валентина', 'валерия', 'ванда', 'варвара', 'василина', 'василиса', 'вера', 'вероника', 'виктория', 'виола', 'виолетта', 'вита', 'виталия', 'владислава', 'власта', 'галина', 'глафира', 'дарья', 'диана', 'дина', 'ева', 'евгения', 'евдокия', 'евлампия', 'екатерина', 'елена', 'елизавета', 'ефросиния', 'ефросинья', 'жанна', 'зиновия', 'злата', 'зоя', 'ивонна', 'изольда', 'илона', 'инга', 'инесса', 'инна', 'ирина', 'ия', 'капитолина', 'карина', 'каролина', 'кира', 'клавдия', 'клара', 'клеопатра', 'кристина', 'ксения', 'лада', 'лариса', 'лиана', 'лидия', 'лилия', 'лина', 'лия', 'лора', 'любава', 'любовь', 'людмила', 'майя', 'маргарита', 'марианна', 'мариетта', 'марина', 'мария', 'марья', 'марта', 'марфа', 'марьяна', 'матрёна', 'матрена', 'матрона', 'милена', 'милослава', 'мирослава', 'муза', 'надежда', 'настасия', 'настасья', 'наталия', 'наталья', 'нелли', 'ника', 'нина', 'нинель', 'нонна', 'оксана', 'олимпиада', 'ольга', 'пелагея', 'полина', 'прасковья', 'раиса', 'рената', 'римма', 'роза', 'роксана', 'руфь', 'сарра', 'светлана', 'серафима', 'снежана', 'софья', 'софия', 'стелла', 'степанида', 'стефания', 'таисия', 'таисья', 'тамара', 'татьяна', 'ульяна', 'устиния', 'устинья', 'фаина', 'фёкла', 'фекла', 'феодора', 'хаврония', 'христина', 'эвелина', 'эдита', 'элеонора', 'элла', 'эльвира', 'эмилия', 'эмма', 'юдифь', 'юлиана', 'юлия', 'ядвига', 'яна', 'ярослава'],\n                ['абрам', 'аверьян', 'авраам', 'агафон', 'адам', 'азар', 'акакий', 'аким', 'аксён', 'александр', 'алексей', 'альберт', 'анатолий', 'андрей', 'андрон', 'антип', 'антон', 'аполлон', 'аристарх', 'аркадий', 'арнольд', 'арсений', 'арсентий', 'артем', 'артём', 'артемий', 'артур', 'аскольд', 'афанасий', 'богдан', 'борис', 'борислав', 'бронислав', 'вадим', 'валентин', 'валерий', 'варлам', 'василий', 'венедикт', 'вениамин', 'веньямин', 'венцеслав', 'виктор', 'вилен', 'виталий', 'владилен', 'владимир', 'владислав', 'владлен', 'всеволод', 'всеслав', 'вячеслав', 'гавриил', 'геннадий', 'георгий', 'герман', 'глеб', 'григорий', 'давид', 'даниил', 'данил', 'данила', 'демьян', 'денис', 'димитрий', 'дмитрий', 'добрыня', 'евгений', 'евдоким', 'евсей', 'егор', 'емельян', 'еремей', 'ермолай', 'ерофей', 'ефим', 'захар', 'иван', 'игнат', 'игорь', 'илларион', 'иларион', 'илья', 'иосиф', 'казимир', 'касьян', 'кирилл', 'кондрат', 'константин', 'кузьма', 'лавр', 'лаврентий', 'лазарь', 'ларион', 'лев', 'леонард', 'леонид', 'лука', 'максим', 'марат', 'мартын', 'матвей', 'мефодий', 'мирон', 'михаил', 'моисей', 'назар', 'никита', 'николай', 'олег', 'осип', 'остап', 'павел', 'панкрат', 'пантелей', 'парамон', 'пётр', 'петр', 'платон', 'потап', 'прохор', 'роберт', 'ростислав', 'савва', 'савелий', 'семён', 'семен', 'сергей', 'сидор', 'спартак', 'тарас', 'терентий', 'тимофей', 'тимур', 'тихон', 'ульян', 'фёдор', 'федор', 'федот', 'феликс', 'фирс', 'фома', 'харитон', 'харлам', 'эдуард', 'эммануил', 'эраст', 'юлиан', 'юлий', 'юрий', 'яков', 'ян', 'ярослав']\n              ];\n              SexByRussianName.patronymic_completions = [\n                ['овна', 'евна', 'ична'],\n                ['ович', 'евич', 'ич']\n              ];\n\n              SexByRussianName.prototype.get_gender = function() {\n                var genders_on_names = [this.gender_by(SexByRussianName.SURNAME, this.surname),\n                                        this.gender_by_first_name(),\n                                        this.gender_by(SexByRussianName.PATRONYMIC, this.patronymic)];\n\n                var gender = this.determine_gender(genders_on_names)\n\n                return gender;\n              };\n\n\n              SexByRussianName.prototype.determine_gender = function(genders) {\n                var male = false,\n                    female = false,\n                    gender = undefined;\n\n                for (var i=0; i < 3; i++){\n                  if (genders[i] === SexByRussianName.MALE) male = true;\n                  if (genders[i] === SexByRussianName.FEMALE) female = true;\n                }\n\n                if (male && !female) gender = SexByRussianName.MALE;\n                if (!male && female) gender = SexByRussianName.FEMALE;\n\n                return gender;\n              }\n\n\n              SexByRussianName.prototype.gender_by_first_name = function() {\n                var gender = undefined,\n                    first_name = this.normalize(this.first_name);\n\n                if (this.is_popular_name(first_name, SexByRussianName.FEMALE)) gender = SexByRussianName.FEMALE;\n                if (this.is_popular_name(first_name, SexByRussianName.MALE)) gender = SexByRussianName.MALE;\n\n                return gender;\n              }\n\n              SexByRussianName.prototype.gender_by = function(name_type, string) {\n                var gender = undefined,\n                    name = this.normalize(string);\n\n                if (this.is_correct(name, name_type, SexByRussianName.FEMALE)) gender = SexByRussianName.FEMALE;\n                if (this.is_correct(name, name_type, SexByRussianName.MALE)) gender = SexByRussianName.MALE;\n\n                return gender;\n              }\n\n              SexByRussianName.prototype.is_correct = function(string, type, gender) {\n                var is_correct = false,\n                    completions;\n\n                  switch (type){\n                    case SexByRussianName.SURNAME:\n                      completions = SexByRussianName.surname_completions[gender];\n                      break;\n                    case SexByRussianName.PATRONYMIC:\n                      completions = SexByRussianName.patronymic_completions[gender];\n                  }\n\n                for (var i=0; i<completions.length; i++){\n                  var completion = this.completion(string, completions[i].length);\n                  if (completion === completions[i]) is_correct = true;\n                }\n\n                return is_correct;\n              }\n\n              SexByRussianName.prototype.is_popular_name = function(first_name, gender) {\n                var is_popular_name = false,\n                    names = SexByRussianName.names[gender];\n\n                for (var i=0; i<names.length; i++){\n                  if (first_name === names[i]) is_popular_name = true;\n                }\n\n                return is_popular_name;\n              }\n\n              SexByRussianName.prototype.completion = function(string, count){\n                var completion = string.substr((string.length - count), (string.length - 1));\n\n                return completion;\n              }\n\n              SexByRussianName.prototype.normalize = function(string) {\n                var normal_string = string.toLowerCase();\n                normal_string = normal_string.replace(/\\s/g, '');\n\n                return normal_string;\n              }\n\n              return SexByRussianName;\n            })();\n\n            var name = getName(data.r[0].INF_NEW);\n            var sex_by_russian_name = new SexByRussianName(name.S, name.N, name.L);\n            var sex = sex_by_russian_name.get_gender(); // 1 — мужской, 0 — женский, undefined — не определен.\n            if (sex == \"1\") return \"M\";\n            if (sex == \"0\") return \"F\";\n            if (sex == \"undefined\") return \"-\";\n        }\n        return arr[i][\"INF_NEW\"].Sex;\n      }\n  \t}\n  }\n}\n\nfunction getDTS (arr) {\n  if (Array.isArray(arr)){\n  \tfor (var i=0; i<arr.length; i++) {\n      if (\"INF_NEW\" in arr[i] && arr[i][\"INF_NEW\"].ruFName != \"null\" && arr[i][\"INF_NEW\"].DB != \"null\") {\n        return arr[i][\"INF_NEW\"].DTS;\n      }\n  \t}\n  }\n}\n\nfunction getUnix(dateString){\n\tif (dateString == \"\" || typeof dateString == \"undefined\") {\n  \tvar date = new Date().getTime() + \"\";\n    return date.substr(0, 10);\n  } else {\n  \tvar M = +dateString.substr(5, 2) - 1;\n\t\tvar date = new Date(dateString.substr(0, 4), M, dateString.substr(8, 2)).getTime()+\"\";\n  \treturn date.substr(0, 10);\n  }\n}\n\nfunction getVip (arr) {\n  var VIP = \"N\"; \n  if (Array.isArray(arr)){\n  \tfor (var i=0; i<arr.length; i++) {\n      if (\"INF_NEW\" in arr[i]) {\n        if (arr[i][\"INF_NEW\"].PotentialVIP == \"Y\" || arr[i][\"INF_NEW\"].VipStatus == \"Y\" ) VIP = \"Y\";\n      }\n      if (\"VIP_INF\" in arr[i]) {\n        if (arr[i][\"VIP_INF\"].VipStatus == \"Y\" ) VIP = \"Y\";\n      }\n  \t}\n  }\n  return VIP;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 670,
+        "y": 1020,
+        "wires": [
+            [
+                "d8eac153.0342a"
+            ]
+        ]
+    },
+    {
+        "id": "d8eac153.0342a",
+        "type": "link out",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "links": [
+            "70fda878.b17ea8"
+        ],
+        "x": 835,
+        "y": 1020,
+        "wires": []
+    },
+    {
+        "id": "a9b9f049.93a29",
+        "type": "link in",
+        "z": "f100698d.0e9dd8",
+        "name": "Проверим клиента",
+        "links": [
+            "a42705f.6d082f8"
+        ],
+        "x": 95,
+        "y": 1020,
+        "wires": [
+            [
+                "244936c9.b825aa"
+            ]
+        ]
+    },
+    {
+        "id": "c10b2960.ef36c8",
+        "type": "debug",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 190,
+        "y": 1060,
+        "wires": []
+    },
+    {
+        "id": "17b616fe.f24159",
+        "type": "debug",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 870,
+        "y": 1060,
+        "wires": []
+    },
+    {
+        "id": "c76d7c23.d8e44",
+        "type": "comment",
+        "z": "f100698d.0e9dd8",
+        "name": "Доопределение параметров клиента",
+        "info": "",
+        "x": 210,
+        "y": 980,
+        "wires": []
+    },
+    {
+        "id": "c0189e21.c720a",
+        "type": "link out",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "links": [
+            "fca969e0.452d28"
+        ],
+        "x": 835,
+        "y": 1197,
+        "wires": []
+    },
+    {
+        "id": "1821643f.90e9fc",
+        "type": "link in",
+        "z": "f100698d.0e9dd8",
+        "name": "Идем в НРМ",
+        "links": [
+            "7c15f1bc.fb107"
+        ],
+        "x": 95,
+        "y": 1197,
+        "wires": [
+            [
+                "af8ea2ef.bedb3",
+                "b260a27c.f9914"
+            ]
+        ]
+    },
+    {
+        "id": "af8ea2ef.bedb3",
+        "type": "debug",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 190,
+        "y": 1237,
+        "wires": []
+    },
+    {
+        "id": "1c9a3357.4ec2bd",
+        "type": "debug",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 870,
+        "y": 1237,
+        "wires": []
+    },
+    {
+        "id": "5c24d9df.03fef8",
+        "type": "comment",
+        "z": "f100698d.0e9dd8",
+        "name": "Доопределение параметров предрасчета",
+        "info": "",
+        "x": 220,
+        "y": 1157,
+        "wires": []
+    },
+    {
+        "id": "795d1e74.4e4c4",
+        "type": "switch",
+        "z": "f100698d.0e9dd8",
+        "name": "Проверим ЕКБ",
+        "property": "toEkb",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "true",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "false",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 620,
+        "y": 400,
+        "wires": [
+            [
+                "a42705f.6d082f8"
+            ],
+            [
+                "ad8e67a.0c51c98"
+            ]
+        ]
+    },
+    {
+        "id": "a42705f.6d082f8",
+        "type": "link out",
+        "z": "f100698d.0e9dd8",
+        "name": "Идем в ЕКБ",
+        "links": [
+            "a9b9f049.93a29"
+        ],
+        "x": 755,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "46aec06c.1c80d",
+        "type": "link out",
+        "z": "f100698d.0e9dd8",
+        "name": "Проверим кошелек",
+        "links": [
+            "9008c896.78e3a8"
+        ],
+        "x": 975,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "70fda878.b17ea8",
+        "type": "link in",
+        "z": "f100698d.0e9dd8",
+        "name": "Доопределили данные клиента в ЕКБ",
+        "links": [
+            "d8eac153.0342a"
+        ],
+        "x": 675,
+        "y": 460,
+        "wires": [
+            [
+                "ad8e67a.0c51c98"
+            ]
+        ]
+    },
+    {
+        "id": "ad8e67a.0c51c98",
+        "type": "switch",
+        "z": "f100698d.0e9dd8",
+        "name": "Проверим кошелек",
+        "property": "toCards",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "true",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "false",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 820,
+        "y": 460,
+        "wires": [
+            [
+                "46aec06c.1c80d"
+            ],
+            [
+                "aad8b352.42d1"
+            ]
+        ]
+    },
+    {
+        "id": "8f680e6.9ef15f",
+        "type": "link in",
+        "z": "f100698d.0e9dd8",
+        "name": "Доопределили данные с кошелька",
+        "links": [
+            "c965ebe5.12e3a8"
+        ],
+        "x": 895,
+        "y": 520,
+        "wires": [
+            [
+                "aad8b352.42d1"
+            ]
+        ]
+    },
+    {
+        "id": "aad8b352.42d1",
+        "type": "switch",
+        "z": "f100698d.0e9dd8",
+        "name": "Проверим НРМ",
+        "property": "toNrm",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "true",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "false",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 1020,
+        "y": 520,
+        "wires": [
+            [
+                "7c15f1bc.fb107"
+            ],
+            [
+                "709c754d.321d3c"
+            ]
+        ]
+    },
+    {
+        "id": "7c15f1bc.fb107",
+        "type": "link out",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "links": [
+            "1821643f.90e9fc"
+        ],
+        "x": 1155,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "709c754d.321d3c",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "Готовим тело сложного запроса",
+        "func": "var addrtype, \n    addrid, \n    attrs = {\n        /*\n        \"код атрибута\":\"Значение атрибута 1\",\n        \"код атрибута\":\"Значение атрибута 2\",\n        \"COMM\":\"Комментарий\"\n        */\n    },\n    history = [\n        /*{\n            \"st\":\"состояние\",\n            \"ch\":\"канал\",\n            \"con\":\"контактные данные\",\n            \"com\":\"комментарий\",\n            \"dt\": \"дата в формате yyyyMMddHHmmss / yyyyMMddHHmm / yyyyMMdd - если не передавать будет getdate()\"\n        }*/\n     ];\n\nfor (var j in msg) {\n    if (/^ATTR[0-9]/.test(j) && msg[j] !== \"\") {\n        msg.body[j] = msg[j];\n    }\n}\n\n//запишем тело в заявку\nfor (var k in msg.body) {\n    //msg[k] = msg.body[k];\n    if (/^(ATTR[0-9]|COMM)$/.test(k)) {\n        attrs[k] = msg.body[k];\n    }\n    \n    if (/^(st|ch|com)$/.test(k)) {\n        if (typeof history[0] != \"object\") history[0] = {};\n        history[0][k] = msg.body[k];\n    }\n}\n\nif (typeof msg.phone != \"undefined\" && /^(\\380[0-9]{9}|380[0-9]{9})$/.test(msg.phone)) {\n    addrtype = \"MB\";\n    if (/^380[0-9]{9}$/.test(msg.phone)) msg.phone = \"+\" + msg.phone;\n    addrid = msg.phone;\n} else if (typeof msg.client_id != \"undefined\" && msg.client_id !== \"\") {\n    addrtype = \"CI\";\n    addrid = msg.client_id;\n} else if (typeof msg.ldap != \"undefined\" && /^([A-Z a-z]{2}[0-9]{6}[A-Z a-z]{3}|[A-Z a-z]{2}[0-9]{6}[A-Z a-z]{3}[0-9]{1})$/.test(msg.ldap)) {\n    addrtype = \"LD\";\n    addrid = msg.ldap;\n}\n\nmsg.payload = {\n   \"evt\": msg.evt,\n   \"st\": \"WT\",\n   \"src\":\"AGENT\",\n   \"addrid\": addrid,\n   \"addrtype\": addrtype,\n   \"bank\":\"PB\",\n   \"lang\": \"UA\",\n   \"extref\": addrid + \"_\" + new Date().getTime(),\n   \"attrs\" : attrs,\n   \"history\": history\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 980,
+        "y": 400,
+        "wires": [
+            [
+                "c0c5fee4.20fac",
+                "d3cd5e59.a96db"
+            ]
+        ]
+    },
+    {
+        "id": "fca969e0.452d28",
+        "type": "link in",
+        "z": "f100698d.0e9dd8",
+        "name": "Получили данные от НРМ",
+        "links": [
+            "c0189e21.c720a"
+        ],
+        "x": 1215,
+        "y": 520,
+        "wires": [
+            [
+                "709c754d.321d3c",
+                "f3ad4ada.f2de68"
+            ]
+        ]
+    },
+    {
+        "id": "b260a27c.f9914",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "Формируем данные для ответа",
+        "func": "msg.nrmInfo = {};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 550,
+        "y": 1200,
+        "wires": [
+            [
+                "c0189e21.c720a",
+                "1c9a3357.4ec2bd"
+            ]
+        ]
+    },
+    {
+        "id": "4d131e08.68d28",
+        "type": "debug",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 450,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "d3cd5e59.a96db",
+        "type": "debug",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 1210,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "f3ad4ada.f2de68",
+        "type": "debug",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 1310,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "fadd660.8bf7c98",
+        "type": "switch",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "property": "statusCode",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "neq",
+                "v": "200",
+                "vt": "num"
+            },
+            {
+                "t": "eq",
+                "v": "200",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 630,
+        "y": 860,
+        "wires": [
+            [
+                "4dd820eb.8bdff"
+            ],
+            [
+                "de51a872.b94bc8"
+            ]
+        ]
+    },
+    {
+        "id": "81f02efc.5fa8c",
+        "type": "debug",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 1050,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "b944ce6e.799eb",
+        "type": "http response",
+        "z": "f100698d.0e9dd8",
+        "name": "",
+        "statusCode": "200",
+        "headers": {},
+        "x": 980,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "4dd820eb.8bdff",
+        "type": "function",
+        "z": "f100698d.0e9dd8",
+        "name": "Готовим тело Ошибки",
+        "func": "msg.payload = {\n   \"error\": {\n       \"text\": \"Ошибка вызова кошелька по клиенту\" + msg.client_id\n   }\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 800,
+        "y": 820,
+        "wires": [
+            [
+                "b944ce6e.799eb"
+            ]
+        ]
+    }
+]
