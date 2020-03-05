@@ -1,0 +1,531 @@
+[
+    {
+        "id": "dc1ff0ac.6ee7a",
+        "type": "tab",
+        "label": "agentPB_bot",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "a870d9a0.7a9418",
+        "type": "telegram sender",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "CoZ2016bot",
+        "bot": "e779f7a9.ff6998",
+        "x": 1250,
+        "y": 320,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "930b1d34.f47e6",
+        "type": "debug",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 1450,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "f6d7ebac.d46318",
+        "type": "telegram command",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "command": "/start",
+        "bot": "e779f7a9.ff6998",
+        "strict": false,
+        "x": 130,
+        "y": 420,
+        "wires": [
+            [
+                "2af48ffe.163ba"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "4312fa26.6acef4",
+        "type": "debug",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 1450,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "81a5bd1a.f426f",
+        "type": "comment",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "Вход",
+        "info": "",
+        "x": 130,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "9f86a66f.3faaa8",
+        "type": "function",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "func": "context.global.keyboard = {pending: true};\n\nvar opts = {\n        reply_to_message_id: msg.payload.messageId,\n        reply_markup: JSON.stringify({\n            \"inline_keyboard\": [\n                [{\n                    \"text\": \"Yes\",\n                    \"callback_data\": \"Yes\"\n                },\n                {\n                    \"text\": \"No\",\n                    \"callback_data\": \"No\"\n                }]\n            ],\n            \"resize_keyboard\": true,\n            \"one_time_keyboard\": true\n        })\n    };\n\nmsg.payload.content = \"Can you see this buttons?\";\nmsg.payload.options = opts;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1090,
+        "y": 320,
+        "wires": [
+            [
+                "a870d9a0.7a9418"
+            ]
+        ]
+    },
+    {
+        "id": "26ac6b77.74d6f4",
+        "type": "telegram sender",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "CoZ2016bot",
+        "bot": "e779f7a9.ff6998",
+        "x": 1250,
+        "y": 420,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "17f832b3.2b070d",
+        "type": "function",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "func": "if (context.global.keyboard.pending) {\n    context.global.keyboard.pending = false;\n     \n    if (msg.payload.content == \"Yes\") {\n        msg.payload.content = \"OK\";\n\n        return [msg, null];\n    } else {\n        msg.payload.content = \"Sorry\";\n\n        return [null, msg];\n    }\n}\n",
+        "outputs": 2,
+        "noerr": 0,
+        "x": 1090,
+        "y": 420,
+        "wires": [
+            [
+                "26ac6b77.74d6f4"
+            ],
+            [
+                "99c08800.0c7f68"
+            ]
+        ]
+    },
+    {
+        "id": "99c08800.0c7f68",
+        "type": "debug",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 1450,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "4322dc19.1bef74",
+        "type": "telegram event",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "bot": "e779f7a9.ff6998",
+        "event": "callback_query",
+        "autoanswer": false,
+        "x": 160,
+        "y": 300,
+        "wires": [
+            [
+                "ed309390.86318"
+            ]
+        ]
+    },
+    {
+        "id": "3eb2fd6d.1d4ab2",
+        "type": "comment",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "Возврат данных из кнопки",
+        "info": "",
+        "x": 1150,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "4d9dabb3.b4a0a4",
+        "type": "telegram receiver",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "bot": "e779f7a9.ff6998",
+        "saveDataDir": "",
+        "x": 150,
+        "y": 720,
+        "wires": [
+            [
+                "48b420ed.4b6bc",
+                "91e6e616.b2bb88"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "c20a1925.ff4278",
+        "type": "debug",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 1680,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "c39fa094.6978f",
+        "type": "function",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "func": "context.global.keyboard = {pending: true};\n\nvar opts = {\n        reply_to_message_id: msg.payload.messageId,\n        reply_markup: JSON.stringify({\n            \"inline_keyboard\": [\n                [{\n                    \"text\": \"Yes\",\n                    \"callback_data\": \"Yes\"\n                },\n                {\n                    \"text\": \"No\",\n                    \"callback_data\": \"No\"\n                }]\n            ],\n            \"resize_keyboard\": true,\n            \"one_time_keyboard\": true\n        })\n    };\n\nmsg.payload.content = \"Зареган\";\n//msg.payload.options = opts;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1360,
+        "y": 800,
+        "wires": [
+            [
+                "a1d9740a.a172f8"
+            ]
+        ]
+    },
+    {
+        "id": "a1d9740a.a172f8",
+        "type": "telegram sender",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "CoZ2016bot",
+        "bot": "e779f7a9.ff6998",
+        "x": 1520,
+        "y": 800,
+        "wires": [
+            [
+                "c20a1925.ff4278"
+            ]
+        ]
+    },
+    {
+        "id": "61904732.205558",
+        "type": "function",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "func": "context.global.keyboard = {pending: true};\n\nvar opts = {\n        reply_to_message_id: msg.payload.messageId,\n        reply_markup: JSON.stringify({\n            \"inline_keyboard\": [\n                [{\n                    \"text\": \"Регаться\",\n                    \"callback_data\": \"Yes\"\n                },\n                {\n                    \"text\": \"Спасибо\",\n                    \"callback_data\": \"No\"\n                }]\n            ],\n            \"resize_keyboard\": true,\n            \"one_time_keyboard\": true\n        })\n    };\n\nmsg.payload.content = \"НЕ зареган?\";\nmsg.payload.options = opts;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1360,
+        "y": 860,
+        "wires": [
+            [
+                "a1d9740a.a172f8"
+            ]
+        ]
+    },
+    {
+        "id": "2385ade.1738952",
+        "type": "comment",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "Управление пользователями",
+        "info": "",
+        "x": 1150,
+        "y": 780,
+        "wires": []
+    },
+    {
+        "id": "20e6d874.920018",
+        "type": "telegram command",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "command": "/help",
+        "bot": "e779f7a9.ff6998",
+        "strict": false,
+        "x": 130,
+        "y": 480,
+        "wires": [
+            [
+                "22323ed6.58ed72"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "ae489b9d.ad00e8",
+        "type": "comment",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "проверить регистрацию",
+        "info": "",
+        "x": 430,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "b14feac.f887d18",
+        "type": "comment",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "обновить счетчик пользователей",
+        "info": "",
+        "x": 460,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "22323ed6.58ed72",
+        "type": "function",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "help command",
+        "func": "var lang = msg.originalMessage.from.language_code;\n\nif (lang == \"ru\") {\n    msg.lang = lang;\n} else {\n    msg.lang = \"ua\";\n}\n\nvar texts = {\n    \"ru\": {\n        \"help\": \"Привет\\r\\n \\r\\n/help - помощь с командами\\r\\n/start - начало процесса знакомства\"\n    },\n    \"ua\": {\n        \"help\": \"Привiт\\r\\n \\r\\n/help - допомога з командами\\r\\n/start - початок процесу знайомства\"\n    }\n};\n\nmsg.payload.content = texts[msg.lang];\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 340,
+        "y": 480,
+        "wires": [
+            [
+                "df6cb395.5a74e"
+            ]
+        ]
+    },
+    {
+        "id": "dee99ad.76df868",
+        "type": "function",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "func": "var users = flow.get(\"users\");\nusers = typeof users == \"undefined\" ? { countAll: 0, countWithPhone: 0, ids: {}} : users;\n\nif (typeof users.ids[msg.payload.chatId] == \"undefined\") {\n    users.ids[msg.payload.chatId] = {chat_id: msg.payload.chatId, phone: \"\", ekb_id: \"\"};\n    users.countAll++;\n}\n\nflow.set(\"users\", users);\n\nvar lang = msg.originalMessage.from.language_code;\n\nif (lang == \"ru\") {\n    msg.lang = lang;\n} else {\n    msg.lang = \"ua\";\n}\n\nvar texts = {\n    \"ru\": \"Для начала работы нам нужен твой телефон\",\n    \"ua\": \"Для начала работы нам нужен твой телефон\"\n};\n\nvar opts = {\n        reply_to_message_id: msg.payload.messageId,\n        reply_markup: JSON.stringify({\n            \"inline_keyboard\": [\n                [{\n                    \"text\": \"Phone\",\n                    \"callback_data\": \"phone\"\n                }]\n            ]\n        })\n    };\ncontext.global.keyboard.pending = true;\n\nmsg.payload.content = texts[msg.lang];\nmsg.payload.options = opts;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 510,
+        "y": 200,
+        "wires": [
+            [
+                "df6cb395.5a74e"
+            ]
+        ]
+    },
+    {
+        "id": "df6cb395.5a74e",
+        "type": "telegram sender",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "CoZ2016bot",
+        "bot": "e779f7a9.ff6998",
+        "x": 730,
+        "y": 200,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "6aef1e.380c60e4",
+        "type": "comment",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "SEND",
+        "info": "",
+        "x": 710,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "2af48ffe.163ba",
+        "type": "function",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "func": "var lang = msg.originalMessage.from.language_code;\n\nif (lang == \"ru\") {\n    msg.lang = lang;\n} else {\n    msg.lang = \"ua\";\n}\n\nvar texts = {\n    \"ru\": \"Products list\",\n    \"ua\": \"Products list\"\n};\n\n\n\nmsg.payload.content = texts[msg.lang];\nmsg.payload.type = \"message\";\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 310,
+        "y": 420,
+        "wires": [
+            [
+                "df6cb395.5a74e",
+                "e9fabbb1.25d348"
+            ]
+        ]
+    },
+    {
+        "id": "ed309390.86318",
+        "type": "function",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "func": "var texts,\n    lang = msg.originalMessage.from.language_code;\n    \n    if (lang == \"ru\") {\n        msg.lang = lang;\n    } else {\n        msg.lang = \"ua\";\n    }\n\nif (context.global.keyboard.pending) {\n    context.global.keyboard.pending = false;\n    \n    texts = {\n        \"ru\": \"Спасибо. Телефон отправлен на регистрацию\",\n        \"ua\": \"Спасибо. Телефон отправлен на регистрацию\"\n    };\n    \n    msg.payload.content = texts[msg.lang];\n    \n    return [msg, null, msg];\n} else {\n    return [null, msg, null];\n}\n\n\n",
+        "outputs": 3,
+        "noerr": 0,
+        "x": 350,
+        "y": 300,
+        "wires": [
+            [
+                "df6cb395.5a74e"
+            ],
+            [
+                "22323ed6.58ed72"
+            ],
+            [
+                "cc74c068.2d09"
+            ]
+        ]
+    },
+    {
+        "id": "1ee2a0c3.62505f",
+        "type": "comment",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "Команды",
+        "info": "",
+        "x": 140,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "c2d1916a.2a47",
+        "type": "comment",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "Приемник ответов",
+        "info": "",
+        "x": 170,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "91e6e616.b2bb88",
+        "type": "function",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "Проверка пользователя",
+        "func": "var users = flow.get(\"users\");\nusers = typeof users == \"undefined\" ? { countAll: 0, countWithPhone: 0, ids: {}} : users;\n\nif (typeof users.ids[msg.payload.chatId] == \"undefined\") {\n    users.ids[msg.payload.chatId] = {chat_id: msg.payload.chatId, phone: \"\", ekb_id: \"\"};\n    users.countAll++;\n    flow.set(\"users\", users);\n} \n\nnode.error(users);\n\nif (/380[0-9]{9}/.test(users.ids[msg.payload.chatId].phone)) {\n    msg.userInfo = users.ids[msg.payload.chatId];\n    return [msg, null];\n} else {\n    return [null, msg];\n}\n\n",
+        "outputs": 2,
+        "noerr": 0,
+        "x": 410,
+        "y": 700,
+        "wires": [
+            [
+                "f01b3ffa.f7a75",
+                "22323ed6.58ed72"
+            ],
+            [
+                "8891258e.170638",
+                "dee99ad.76df868"
+            ]
+        ]
+    },
+    {
+        "id": "48b420ed.4b6bc",
+        "type": "debug",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 350,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "f01b3ffa.f7a75",
+        "type": "debug",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 630,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "8891258e.170638",
+        "type": "debug",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 630,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "cc74c068.2d09",
+        "type": "delay",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "10",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 560,
+        "y": 320,
+        "wires": [
+            [
+                "2af48ffe.163ba"
+            ]
+        ]
+    },
+    {
+        "id": "e9fabbb1.25d348",
+        "type": "debug",
+        "z": "dc1ff0ac.6ee7a",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 610,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "e779f7a9.ff6998",
+        "type": "telegram bot",
+        "z": "",
+        "botname": "@CoZ2016bot",
+        "usernames": "",
+        "chatids": "",
+        "baseapiurl": "",
+        "updatemode": "polling",
+        "pollinterval": "300",
+        "usesocks": false,
+        "sockshost": "",
+        "socksport": "6667",
+        "socksusername": "anonymous",
+        "sockspassword": "",
+        "bothost": "",
+        "localbotport": "8443",
+        "publicbotport": "8443",
+        "privatekey": "",
+        "certificate": "",
+        "useselfsignedcertificate": false,
+        "verboselogging": false
+    }
+]
